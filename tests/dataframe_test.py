@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 
 from superset.dataframe import dedup, SupersetDataFrame
@@ -122,10 +116,14 @@ class SupersetDataFrameTestCase(SupersetTestCase):
 
     def test_is_date(self):
         f = SupersetDataFrame.is_date
-        self.assertEquals(f(np.dtype('M')), True)
+        self.assertEquals(f(np.dtype('M'), ''), True)
+        self.assertEquals(f(np.dtype('f'), 'DATETIME'), True)
+        self.assertEquals(f(np.dtype('i'), 'TIMESTAMP'), True)
+        self.assertEquals(f(None, 'DATETIME'), True)
+        self.assertEquals(f(None, 'TIMESTAMP'), True)
 
-        self.assertEquals(f(None), False)
-        self.assertEquals(f(np.dtype(np.int32)), False)
+        self.assertEquals(f(None, ''), False)
+        self.assertEquals(f(np.dtype(np.int32), ''), False)
 
     def test_dedup_with_data(self):
         data = [

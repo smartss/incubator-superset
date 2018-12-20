@@ -1,13 +1,8 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from flask import g, redirect
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
@@ -18,6 +13,12 @@ from .base import BaseSupersetView, DeleteMixin, SupersetModelView
 
 class QueryView(SupersetModelView):
     datamodel = SQLAInterface(Query)
+
+    list_title = _('List Query')
+    show_title = _('Show Query')
+    add_title = _('Add Query')
+    edit_title = _('Edit Query')
+
     list_columns = ['user', 'database', 'status', 'start_time', 'end_time']
     label_columns = {
         'user': _('User'),
@@ -92,6 +93,7 @@ appbuilder.add_link(
 class SqlLab(BaseSupersetView):
     """The base views for Superset!"""
     @expose('/my_queries/')
+    @has_access
     def my_queries(self):
         """Assigns a list of found users to the given role."""
         return redirect(

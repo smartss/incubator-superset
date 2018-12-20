@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """ Superset wrapper around pandas.DataFrame.
 
@@ -7,11 +6,6 @@ TODO(bkyryliuk): add support for the conventions like: *_dim or dim_*
 TODO(bkyryliuk): recognize integer encoded enums.
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from datetime import date, datetime
 import logging
 
@@ -21,7 +15,7 @@ from pandas.core.common import _maybe_box_datetimelike
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from past.builtins import basestring
 
-from superset.utils import JS_MAX_INTEGER
+from superset.utils.core import JS_MAX_INTEGER
 
 INFER_COL_TYPES_THRESHOLD = 95
 INFER_COL_TYPES_SAMPLE_SIZE = 100
@@ -73,9 +67,7 @@ class SupersetDataFrame(object):
         if cursor_description:
             column_names = [col[0] for col in cursor_description]
 
-        case_sensitive = db_engine_spec.consistent_case_sensitivity
-        self.column_names = dedup(column_names,
-                                  case_sensitive=case_sensitive)
+        self.column_names = dedup(column_names)
 
         data = data or []
         self.df = (
@@ -132,13 +124,18 @@ class SupersetDataFrame(object):
                 continue
         return 100 * success / total
 
-    @classmethod
-    def is_date(cls, dtype):
-        if dtype and dtype.name:
-            return any([
-                dtype.name.lower().startswith(s)
-                for s in ['date', 'time']
-            ])
+    @staticmethod
+    def is_date(np_dtype, db_type_str):
+
+        def looks_daty(s):
+            if isinstance(s, basestring):
+                return any([s.lower().startswith(ss) for ss in ('time', 'date')])
+            return False
+
+        if looks_daty(db_type_str):
+            return True
+        if np_dtype and np_dtype.name and looks_daty(np_dtype.name):
+            return True
         return False
 
     @classmethod
@@ -176,19 +173,19 @@ class SupersetDataFrame(object):
         if sample_size:
             sample = self.df.sample(sample_size)
         for col in self.df.dtypes.keys():
-            col_db_type = (
+            db_type_str = (
                 self._type_dict.get(col) or
                 self.db_type(self.df.dtypes[col])
             )
             column = {
                 'name': col,
                 'agg': self.agg_func(self.df.dtypes[col], col),
-                'type': col_db_type,
-                'is_date': self.is_date(self.df.dtypes[col]),
+                'type': db_type_str,
+                'is_date': self.is_date(self.df.dtypes[col], db_type_str),
                 'is_dim': self.is_dimension(self.df.dtypes[col], col),
             }
 
-            if column['type'] in ('OBJECT', None):
+            if not db_type_str or db_type_str.upper() == 'OBJECT':
                 v = sample[col].iloc[0] if not sample[col].empty else None
                 if isinstance(v, basestring):
                     column['type'] = 'STRING'

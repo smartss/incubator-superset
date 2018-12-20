@@ -1,14 +1,9 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 
 from flask import request
 from flask_appbuilder import expose
+from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import gettext as __
 
 from superset import appbuilder, db
@@ -19,6 +14,7 @@ from .base import BaseSupersetView, check_ownership, json_error_response
 class Datasource(BaseSupersetView):
     """Datasource-related views"""
     @expose('/save/', methods=['POST'])
+    @has_access_api
     def save(self):
         datasource = json.loads(request.form.get('data'))
         datasource_id = datasource.get('id')
@@ -39,6 +35,7 @@ class Datasource(BaseSupersetView):
         return self.json_response(data)
 
     @expose('/external_metadata/<datasource_type>/<datasource_id>/')
+    @has_access_api
     def external_metadata(self, datasource_type=None, datasource_id=None):
         """Gets column info from the source system"""
         orm_datasource = ConnectorRegistry.get_datasource(
